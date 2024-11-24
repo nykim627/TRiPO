@@ -1,5 +1,3 @@
-# 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
-
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 import pinecone
