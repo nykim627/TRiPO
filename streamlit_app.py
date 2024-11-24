@@ -25,14 +25,17 @@ from streamlit_css import (
     title_style,
 )  # CSS 모듈 불러오기
 
+# 배포용 api 설정
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+google_maps_api_key = st.secrets["GOOGLE_API_KEY"]
 
-
+if not openai_api_key or not google_maps_api_key:
+    raise ValueError("API 키가 Streamlit Secrets에 설정되지 않았습니다.")
 
 # .env 파일 로드
-load_dotenv()
-
+#load_dotenv()
 # API 키 가져오기
-openai_api_key = os.getenv("OPENAI_API_KEY")
+#openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # OpenAI 라이브러리에 API 키 설정
 import openai
