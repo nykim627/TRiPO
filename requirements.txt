@@ -1,0 +1,12 @@
+pandas==2.2.3
+numpy==1.26.4
+streamlit==1.40.1
+streamlit-chat==0.1.1
+python-dotenv==1.0.1
+openai==1.53.0
+pinecone-client==5.0.1
+requests==2.32.3
+langchain==0.3.7
+langchain-core==0.3.15
+sentence-transformers==3.2.1
+nltk==3.9.1
