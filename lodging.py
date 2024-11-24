@@ -1,6 +1,5 @@
 # 벡터 DB 및 llm 라이브러리
 import pinecone
-from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.chains import LLMChain
