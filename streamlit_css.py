@@ -227,16 +227,15 @@ def get_css():
     </style>
 """
 
-# 전반적으로 가린 코드(11/23)
 def travel_card_style():
     return """
     <style>
-    /* 여행 일정 카드 스타일 정의 */
+        /* 여행 일정 카드 스타일 정의 */
         .subheader {
-        font-size: 18px;
-        font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
-        margin-top: 0px;
-        }
+            font-size: 18px;
+            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
+            margin-top: 0px;
+            }
         .travel-card-container {
             display: flex;
             align-items: flex-start; /* 동그라미와 카드 상단 정렬 */
@@ -249,50 +248,59 @@ def travel_card_style():
             width: 21px;
             height: 21px;
             border-radius: 50%; /* 원형 */
-            background-color: #00199A; /* 파란색 배경 00199A*/ /* 보라색 배경 975FFE*/
+            background-color: #00199A; /* 파란색 배경 */
             color: white; /* 흰색 텍스트 */
-            font-weight: bold;
             font-size: 11px;
-            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
+            font-family: 'Pretendard', sans-serif;
             text-align: center;
-            line-height: 21px; /* 텍스트를 원의 중앙에 배치 */
+            line-height: 21px;
         }
         .travel-card {
-            flex: 1; /* 동그라미 옆 카드가 남은 공간을 채우도록 설정 */
-            border: 1px solid #d1d1d1;
+            flex: 1;
             border-radius: 8px;
             padding: 10px;
-            background-color: #f9f9f9;
+            background-color: #ffffff; /*f9f9f9*/
+            box-shadow: 0px 4px 40px 4px rgba(0, 0, 0, 0.08);
+            font-family: 'Pretendard', sans-serif;
             font-size: 14px;
-            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
         }
-        .travel-card h5 {
+        .travel-card-header {
+            display: flex;
+            align-items: center; /* 이미지와 텍스트 수평 정렬 */
+            gap: 10px; /* 이미지와 텍스트 간 간격 */
+            margin-bottom: 8px; /* 헤더와 회색선 사이 간격 */
+        }
+        .travel-card-header img {
+            width: 40px; /* 이미지 너비 */
+            height: 40px; /* 이미지 높이 */
+            object-fit: cover; /* 비율 유지 */
+            border-radius: 8px; /* 이미지 모서리 둥글게 */
+        }
+        .travel-card-header h5 {
             margin: 0;
             font-size: 14px;
-            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
+            font-family: 'Pretendard', sans-serif;
             display: inline;
         }
-        .travel-card p.time {
-            color: #888888;
+        .travel-card-header p.time {
+            margin: 0;
             font-size: 12px;
-            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
+            color: #888888;
             display: inline;
             margin: 0 0 5px 0;
         }
         .travel-card hr {
-            margin: 5px 0;
+            margin: 8px 0;
             border: none;
-            border-top: 1px solid #d1d1d1;
+            border-top: 1px solid #e4e4e4;
         }
         .travel-card p.description {
             font-size: 13px;
-            font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
             margin: 0;
         }
+
     </style>
     """
-
-
 
 # 숙소 추천 카드 스타일 정의
 def accommodation_card_style():
@@ -311,23 +319,26 @@ def accommodation_card_style():
 
         .accommodation-card img.accommodation-image {
             width: 100%; /* 이미지 너비를 카드 너비에 맞춤 */
-            height: 150px; /* 고정된 높이 */
+            height: 85px; /* 고정된 높이 */
             object-fit: cover; /* 이미지가 비율을 유지하면서 카드 크기에 맞도록 자름 */
             margin-bottom: 5px; /* 이미지 아래 간격 추가 */
             border-radius: 8px; /* 이미지 모서리 둥글게 */
         }
         
         .accommodation-card h6 {
-            font-size: 13px;
+            font-size: 12px;
             font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
-            margin: 5px 0;
             font-weight: bold;
+            display: inline;
+            margin: 0 0 5px 0;
         }
         .accommodation-card p {
             font-size: 12px;
             font-family: 'Pretendard', sans-serif; /* Pretendard 적용 */
-            margin: 3px 0;
+            display: inline;
+            margin: 0 0 5px 0;
         }
+
     </style>
 """
 

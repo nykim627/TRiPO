@@ -26,16 +26,16 @@ from streamlit_css import (
 )  # CSS 모듈 불러오기
 
 # 배포용 api 설정
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-google_maps_api_key = st.secrets["GOOGLE_API_KEY"]
+#openai_api_key = st.secrets["OPENAI_API_KEY"]
+#google_maps_api_key = st.secrets["GOOGLE_API_KEY"]
 
-if not openai_api_key or not google_maps_api_key:
-    raise ValueError("API 키가 Streamlit Secrets에 설정되지 않았습니다.")
+#if not openai_api_key or not google_maps_api_key:
+#    raise ValueError("API 키가 Streamlit Secrets에 설정되지 않았습니다.")
 
 # .env 파일 로드
-#load_dotenv()
+load_dotenv()
 # API 키 가져오기
-#openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # OpenAI 라이브러리에 API 키 설정
 import openai
@@ -58,7 +58,12 @@ def create_google_map_js(day_df, google_maps_api_key):
     markers_js = ""
     for idx, row in day_df.iterrows():
         # Google 지도 링크 생성 (주소 기반)
-        google_maps_link = f"https://www.google.com/maps/search/?api=1&query={row['주소'].replace(' ', '+')}"  # 주소의 공백을 '+'로 변환
+        #google_maps_link = f"https://www.google.com/maps/search/?api=1&query={row['주소'].replace(' ', '+')}"  # 주소의 공백을 '+'로 변환
+
+        # Google 지도 링크 생성 (PlaceID 기반) - travel.py 수정해야함
+        place_id = row["PlaceID"]  # Google Place ID 가져오기
+        google_maps_link = f"https://www.google.com/maps/place/?q=place_id:{place_id}"  # Place ID 기반 Google 지도 링크 생성
+
 
         # 각 장소에 대해 마커와 Info Window 추가
         markers_js += f"""
@@ -126,9 +131,6 @@ def create_google_map_js(day_df, google_maps_api_key):
     """
     return map_html
 
-
-
-
 # 챗봇 이미지 로드 및 인코딩
 image_url = "https://raw.githubusercontent.com/CSID-DGU/2024-2-DSCD-3V-2/main/data/RIPO_image.png?raw=true"
 response = requests.get(image_url)
@@ -141,7 +143,6 @@ else:
     st.error("챗봇 이미지를 불러오는 데 실패했습니다.")
     chatbot_image_base64 = ""
 
-
 # 챗봇 메시지 출력 함수
 def chatbot_message(text):
     st.markdown(
@@ -153,9 +154,8 @@ def chatbot_message(text):
             </div>
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
-
 
 # 사용자 메시지 출력 함수
 def user_message(text):
@@ -165,9 +165,8 @@ def user_message(text):
             <div class="user-bubble">{text}</div>
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
-
 
 # 입력창 디자인
 def message_input():
@@ -177,37 +176,27 @@ def message_input():
             <input type="text" class="message-input" placeholder="메시지를 입력하세요..."/>
             <button class="send-button">보내기</button>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """, 
+        unsafe_allow_html=True
     )
-
 
 # 세션 초기화 - for 문 이용
 if "messages" not in st.session_state:
     st.session_state.messages = []
 required_keys = [
-    "destination",
-    "destination_kr",
-    "travel_dates",
-    "travel_dates_str",
-    "itinerary_days",
-    "total_days",
-    "stay_duration",
-    "stay_duration_kr",
-    "companion",
-    "travel_style",
-    "itinerary_preference",
-    "accommodation_type",
-    "itinerary_generated",
-    "itinerary",
-    "current_step",
+    "destination","destination_kr",
+    "travel_dates","travel_dates_str","itinerary_days",
+    "total_days","stay_duration","stay_duration_kr",
+    "companion","travel_style","itinerary_preference",
+    "accommodation_type","itinerary_generated","itinerary",
+    "current_step"
 ]
 
 for key in required_keys:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# 각 단계의 논리 구조 코드 : 상우 수정(11/12)
+# 각 단계의 논리 구조 코드
 if st.session_state.current_step == 0 and st.session_state.destination:
     st.session_state.current_step = 1
 if st.session_state.current_step == 1 and st.session_state.stay_duration:
@@ -221,8 +210,7 @@ if st.session_state.current_step == 4 and st.session_state.itinerary_preference:
 if st.session_state.current_step == 5 and st.session_state.accommodation_type:
     st.session_state.current_step = 6
 
-
-# Reset function to go back to the start
+# 챗봇 대화 초기화 코드(처음으로 버튼 연동 부분)- 수정 부분(상우)
 def reset_conversation():
     """전체 대화를 초기화하고 처음 단계로 돌아갑니다."""
     for key in [
@@ -234,12 +222,63 @@ def reset_conversation():
         "accommodation_type",
         "itinerary_generated",
         "itinerary",
+        "selected_companions",        # 여행 동행인 초기화
+        "companions_selected",        # 여행 동행인 선택 완료 여부 초기화
+        "selected_styles",            # 여행 스타일 초기화
+        "styles_selected",            # 여행 스타일 선택 완료 여부 초기화
+        "selected_itinerary_style",   # 여행 일정 스타일 초기화
+        "itinerary_style_selected",   # 여행 일정 스타일 선택 완료 여부 초기화
+        "accommodations_selected",    # 숙소 선택 완료 여부 초기화
+        "selected_accommodations"     # 숙소 초기화
     ]:
         st.session_state[key] = None
     st.session_state.messages = []
-    st.session_state.current_step = 0
-    # 애플리케이션을 다시 실행하여 초기 화면을 표시
+    st.session_state.current_step = 0 #(current_step=0으로 초기화)
+    # 초기 화면 제목을 리셋하기 위한 부분
+    st.session_state.destination_kr = None
+    st.session_state.stay_duration_kr = None
+    # 애플리케이션을 다시 실행하여 초기 화면을 표시 #(오른쪽 제목)
+    st.session_state.page_title = "TRiPO 여행 일정 생성"
     st.rerun()
+
+def reset_widget_state(current_step):  #각 step에 대해 초기화할 부분들
+    fields_to_reset = {
+        0: ["destination", "destination_kr"],
+        1: ["stay_duration", "stay_duration_kr", "travel_dates", "travel_dates_str"],
+        2: ["companion", "companions_selected"],
+        3: ["travel_style", "styles_selected"],
+        4: ["itinerary_preference", "selected_itinerary_style", "itinerary_style_selected"],
+        5: ["accommodation_type", "accommodations_selected"],
+    }
+
+    if current_step in fields_to_reset:
+        for field in fields_to_reset[current_step]:
+            st.session_state[field] = None
+
+# 이전 단계로 돌아가기 함수
+def previous_step():
+    """이전 단계로 돌아가며 선택 항목을 초기화합니다."""
+    if st.session_state.current_step > 0:
+        st.session_state.current_step -= 1  # 이전 단계로 이동
+        reset_widget_state(st.session_state.current_step)
+        # 단계별 초기화할 상태 설정
+        fields_to_reset = {
+            0: ["destination", "destination_kr"],
+            1: ["stay_duration", "stay_duration_kr", "travel_dates", "travel_dates_str"],
+            2: ["companion", "companions_selected"],
+            3: ["travel_style", "styles_selected"],
+            4: ["itinerary_preference"],
+            5: ["accommodation_type", "accommodations_selected"]
+        }
+        
+        # 현재 단계에 맞는 필드 초기화
+        fields = fields_to_reset.get(st.session_state.current_step, [])
+        for field in fields:
+            if field in st.session_state:
+                st.session_state[field] = None
+
+        reset_widget_state(st.session_state.current_step) 
+        st.rerun()
 
 # 메시지 및 질문 출력 후 추가 요청 질문 표시
 def follow_up_question():
@@ -255,7 +294,6 @@ def follow_up_question():
     # "처음으로"가 선택된 경우 reset_conversation 호출
     if selected_option == "처음으로":
         reset_conversation()
-
 
 # 여행 일정 생성 함수
 def generate_itinerary():
@@ -303,49 +341,45 @@ def generate_itinerary():
 
 # 사이드바를 통한 입력 인터페이스
 with st.sidebar:
-    st.markdown(
-        '<div class="sidebar-title">여행 일정 생성 Chat</div>', unsafe_allow_html=True
-    )
-    # Assistant message for greeting
+    if 'initialized' not in st.session_state:
+        st.session_state.current_step = 0
+        st.session_state.initialized = True
+    st.markdown('<div class="sidebar-title">여행 일정 생성 Chat</div>', unsafe_allow_html=True)
     chatbot_message(
         "안녕하세요 여행자님! 여행자님의 계획 생성을 도와줄 리포(RIPO)입니다👋 저와 함께 멋진 여행 일정을 만들어봐요!✨ 그럼 질문에 맞는 답을 체크박스로 선택해주시면 바로 시작해볼게요!",  # 문구변경함
     )
-
-    # 1초 지연
-    time.sleep(0.5)
-
-    # 도시 선택 체크박스 UI + 사용자 입력 상자 추가
     chatbot_message("어느 도시를 여행하고 싶으신가요? 아래에서 도시를 선택해주세요.")
 
-    # 도시 이름과 해당 영어 표기 매핑
-    cities = {
-        "일본 오사카": "osaka",
-        "프랑스 파리": "paris",
-        "태국 방콕": "bangkok",
-        "미국 뉴욕": "newyork",
-    }
+	#수정한 부분(11/29-상우)
+    if st.session_state.current_step == 0:
+        cities = {"일본 오사카": "osaka", "프랑스 파리": "paris", "태국 방콕": "bangkok", "미국 뉴욕": "newyork"}
+        selected_city = st.pills(label=None, options=list(cities.keys()), selection_mode="single", key="destination_pills")
 
-    # Pills 스타일로 도시 선택 (기본 선택 없음)
-    selected_city = st.pills(
-        label=None, options=list(cities.keys()), selection_mode="single"  # 도시 목록
-    )
+        if selected_city:
+            st.session_state.destination = cities[selected_city]
+            st.session_state.destination_kr = selected_city
+            st.session_state.current_step = 1  # 다음 단계로 이동
 
-    # 선택된 도시에 따라 상태 업데이트
-    if selected_city:
-        selected_city_en = cities[selected_city]
-        st.session_state.destination = (
-            selected_city_en  # 영어 이름으로 세션 상태 업데이트
-        )
-        st.session_state.destination_kr = selected_city
-        st.session_state.current_step = 1
-        user_message(f"{selected_city}")  # 사용자 선택 도시 메시지
-        chatbot_message(f"{selected_city} 여행을 계획해드리겠습니다.")
-
-    # 지연
-    time.sleep(0.5)
-
-    # 여행 날짜 선택 (달력 형식) - 나영 추가 수정(11/14)
+    #수정한 부분(11/29- 상우)
+    # 여행 날짜 선택 (달력 형식)
     if st.session_state.get("destination"):
+        if st.session_state.get("destination_kr"):
+            #chatbot_message("어느 도시를 여행하고 싶으신가요? 아래에서 도시를 선택해주세요.")
+            user_message(f"{st.session_state.destination_kr}")
+            chatbot_message(f"{st.session_state.destination_kr} 여행을 계획해드리겠습니다.")
+
+        if "travel_dates_reset" not in st.session_state:
+            st.session_state["travel_dates_reset"] = False
+        if "dates_selected" not in st.session_state:
+            st.session_state["dates_selected"] = False  # 기본값: 날짜 미선택
+
+        if st.session_state["travel_dates_reset"]:
+            default_dates = (date.today(), date.today())
+            st.session_state["travel_dates_reset"] = False  # 리셋 플래그 해제
+        else:
+            default_dates = st.session_state.get("travel_dates", (date.today(), date.today()))
+
+
         chatbot_message(
             "여행 날짜를 선택해주세요 📅 아직 확정된 여행 날짜가 없다면 여행 기간을 입력해주세요"
         )
@@ -356,36 +390,44 @@ with st.sidebar:
             value=(date.today(), date.today()),
             key="travel_dates",
             min_value=date.today(),
-            help="시작일과 종료일을 선택하세요.",
+            help="시작일과 종료일을 선택하세요."
         )
 
         # 사용자 정의 여행 기간 입력받기
-        custom_duration = st.text_input(
-            "또는 여행 기간을 'O박 O일' 형식으로 입력해주세요", key="custom_duration"
+        custom_duration = st.text_input("또는 여행 기간을 'O박 O일' 형식으로 입력해주세요", key="custom_duration")
+
+        # "처음으로", "이전으로" 옵션 추가
+        navigation_options = st.pills(
+            label=None,
+            options=["처음으로"],
+            selection_mode="single",
+            key="date_navigation"
         )
+
+        # 선택한 옵션에 따라 동작
+        if navigation_options == "처음으로":
+            reset_conversation()
 
         # 여행 기간 설정 로직
         if custom_duration:
             # 사용자 정의 입력 처리
             if re.match(r"^\d+박\s*\d+일$", custom_duration):
-                nights, days = map(int, re.findall(r"\d+", custom_duration))
+                nights, days = map(int, re.findall(r'\d+', custom_duration))
                 start_date = date.today()
                 end_date = start_date + timedelta(days=nights)
-
+            
                 # 선택한 사용자 정의 기간을 상태에 업데이트
                 st.session_state.stay_duration = f"{nights} nights {days} days"
                 st.session_state.stay_duration_kr = f"{nights}박 {days}일"
                 st.session_state.itinerary_days = [
-                    (start_date + timedelta(days=i)).strftime("Day %d")
-                    for i in range(days)
+                    (start_date + timedelta(days=i)).strftime("Day %d") for i in range(days)
                 ]
                 st.session_state.total_days = days
+                st.session_state["dates_selected"] = True  # 날짜 선택 완료 상태로 변경
 
                 # 사용자 정의 기간에 대한 메시지 출력
                 user_message(f"{st.session_state.stay_duration_kr}")
-                chatbot_message(
-                    f"{st.session_state.stay_duration_kr} 동안의 멋진 여행을 준비해드리겠습니다!"
-                )
+                chatbot_message(f"{st.session_state.stay_duration_kr} 동안의 멋진 여행을 준비해드리겠습니다!")
             else:
                 st.error("입력 형식이 올바르지 않습니다. 예: '5박 6일'")
         elif isinstance(selected_dates, tuple) and len(selected_dates) == 2:
@@ -399,43 +441,37 @@ with st.sidebar:
                 st.session_state.stay_duration = f"{nights} nights {days} days"
                 st.session_state.stay_duration_kr = f"{nights}박 {days}일"
                 st.session_state.itinerary_days = [
-                    (start_date + timedelta(days=i)).strftime("Day %d")
-                    for i in range(days)
+                    (start_date + timedelta(days=i)).strftime("Day %d") for i in range(days)
                 ]
                 st.session_state.total_days = days
 
                 # 선택한 날짜를 "YYYY/MM/DD ~ YYYY/MM/DD" 형식으로 저장
                 st.session_state.travel_dates_str = f"{start_date.strftime('%Y/%m/%d')} ~ {end_date.strftime('%Y/%m/%d')}"
-
+                st.session_state["dates_selected"] = True  # 날짜 선택 완료 상태로 변경
+                
                 # 날짜 선택에 대한 메시지 출력
                 user_message(f"{st.session_state.travel_dates_str}")
-                chatbot_message(
-                    f"{st.session_state.travel_dates_str} 동안의 멋진 여행을 준비해드리겠습니다!"
-                )
+                chatbot_message(f"{st.session_state.travel_dates_str} 동안의 멋진 여행을 준비해드리겠습니다!")
         else:
             # 선택한 날짜 또는 사용자 정의 기간이 없으면 초기 상태 유지
             st.session_state.stay_duration = None
+            st.session_state.current_step = 2
 
-    # 지연
-    time.sleep(0.5)
-
-    # 한글로 입력된 입력을 gpt 이용해서 영어로 번역해주는 함수
+    # 한글로 입력된 입력을 gpt 이용해서 영어로 번역해주는 함수     
     def translate_to_english(text):
         try:
             response = openai.Completion.create(
-                engine="davinci",  # 가장 강력한 GPT-3 모델
+                engine="davinci",   # 가장 강력한 GPT-3 모델
                 prompt=f"Translate the following Korean text to English: {text}",
-                max_tokens=60,  # 번역에 충분한 토큰 수
+                max_tokens=60  # 번역에 충분한 토큰 수
             )
             return response.choices[0].text.strip()
         except Exception as e:
             return text  # 번역 실패 시 원본 텍스트 반환
-
-    # 여행 동행인 선택 - 나영수정(11/14): pills 스타일 사용, 다중선택 변경 완료
+		
+    # 여행 동행인 선택
     if st.session_state.stay_duration:
-        chatbot_message(
-            "누구와 함께 여행을 떠나시나요? 골라주세요! 중복선택도 가능합니다 😎"
-        )
+        chatbot_message("누구와 함께 여행을 떠나시나요? 골라주세요! 중복선택도 가능합니다 😎")
         companions = {
             "혼자": "Alone",
             "친구와": "With friends",
@@ -443,58 +479,58 @@ with st.sidebar:
             "가족과": "With family",
             "어린아이와": "With children",
             "반려동물과": "With pets",
-            "단체 여행": "Group travel",
+            "단체 여행": "Group travel"
         }
 
-        # Pills 스타일로 동행인 선택
-        selected_companions = st.pills(
-            label=None, options=list(companions.keys()), selection_mode="multi"
-        )
+        # 상태 초기화
+        if 'companions_selected' not in st.session_state:
+            st.session_state.companions_selected = False
+        if 'selected_companions' not in st.session_state:
+            st.session_state.selected_companions = []
 
-        # 기본 선택된 동행인 목록 초기화
-        selected_companion_en = []
-        selected_companions_kr = ""
-
-        # 사용자 정의 동행인 입력받기
-        custom_companion = st.text_input(
-            "다른 동행인을 입력하시려면 'OO 과/와' 형식으로 입력해주세요",
-            key="custom_companion",
-        )
-
-        if custom_companion:
-            # 사용자 정의 동행인이 입력된 경우, pills 선택 초기화하고 사용자 정의 동행인만 반영
-            translated_companion = translate_to_english(custom_companion)
-            selected_companion_en = [translated_companion]
-            selected_companions_kr = custom_companion
-            st.session_state.companion = selected_companion_en
-            st.session_state.current_step = 3
-            # 선택된 동행인 메시지 출력
-            user_message(f"{selected_companions_kr}")
-            chatbot_message(
-                f"{selected_companions_kr} 함께하는 멋진 여행을 준비해드리겠습니다!"
+        # Pills 옵션 및 선택 로직
+        if not st.session_state.companions_selected:
+            selected_companions = st.pills(
+                label=None,
+                options=list(companions.keys()) + ["처음으로"],
+                selection_mode="multi",
+                key="companion_pills"
             )
-        elif selected_companions:
-            # 사용자 정의 동행인이 없을 때만 pills 선택 반영
-            selected_companion_en = [
-                companions[companion] for companion in selected_companions
-            ]
+
+            # '처음으로' 선택 시 대화 초기화
+            if "처음으로" in selected_companions:
+                reset_conversation()
+
+            # 다른 동행인 입력
+            custom_companion = st.text_input("다른 동행인을 입력하시려면 'OO 과/와' 형식으로 입력해주세요", key="custom_companion")
+
+            # 선택 완료 버튼 클릭 시
+            if st.button("선택 완료", key="confirm_companions"):
+                st.session_state.companions_selected = True  # 선택 완료 상태로 변경
+                if custom_companion:
+                    translated_companion = translate_to_english(custom_companion)
+                    selected_companion_en = [translated_companion]
+                    selected_companions_kr = custom_companion
+                    st.session_state.selected_companions = selected_companion_en
+                else:
+                    st.session_state.selected_companions = [
+                        comp for comp in selected_companions if comp != "처음으로"
+                    ]
+        else:
+            # 선택 완료 후 결과 메시지 출력
+            selected_companions = st.session_state.selected_companions
+            selected_companions_en = [companions.get(comp, comp) for comp in selected_companions]
             selected_companions_kr = ", ".join(selected_companions)
-            st.session_state.companion = selected_companion_en
-            st.session_state.current_step = 3
-            # 선택된 동행인 메시지 출력
+            st.session_state.companion = selected_companions_en
+
             user_message(f"{selected_companions_kr}")
-            chatbot_message(
-                f"{selected_companions_kr} 함께하는 멋진 여행을 준비해드리겠습니다!"
-            )
-
-    # 지연
-    time.sleep(0.5)
-
-    # 여행 스타일 선택 - 나영수정(11/14): pills 스타일 사용, 다중선택 변경 완료
+            chatbot_message(f"{selected_companions_kr} 함께하는 멋진 여행을 준비해드리겠습니다!")
+            st.session_state.current_step = 3
+	
+    #수정한 부분(11/29-상우)
+    # 여행 스타일 선택
     if st.session_state.companion:
-        chatbot_message(
-            "어떤 여행 스타일을 선호하시나요? 아래에서 선택하거나 직접 입력해주세요. 중복선택도 가능합니다 😎"
-        )
+        chatbot_message("어떤 여행 스타일을 선호하시나요? 아래에서 선택하거나 직접 입력해주세요. 중복선택도 가능합니다 😎")
         travel_styles = {
             "액티비티": "Activity",
             "핫플레이스": "Hotspots",
@@ -503,140 +539,173 @@ with st.sidebar:
             "힐링": "Relaxing",
             "쇼핑": "Shopping",
             "맛집": "Gourmet",
-            "럭셔리 투어": "Luxury Tour",
+            "럭셔리 투어": "Luxury Tour"
         }
 
-        # Pills 스타일로 여행 스타일 선택
-        selected_styles = st.pills(
-            label=None, options=list(travel_styles.keys()), selection_mode="multi"
-        )
+        # 상태 초기화
+        if 'styles_selected' not in st.session_state:
+            st.session_state.styles_selected = False
+        if 'selected_styles' not in st.session_state:
+            st.session_state.selected_styles = []
 
-        # 기본 선택된 여행 스타일 목록 초기화
-        selected_styles_en = []
-        selected_styles_kr = ""
-
-        # 사용자 정의 여행 스타일 입력받기
-        custom_style = st.text_input(
-            "다른 스타일을 원하시면 입력해주세요", key="custom_style"
-        )
-
-        if custom_style:
-            # 사용자 정의 스타일이 입력된 경우, pills 선택 초기화하고 사용자 정의 스타일만 반영
-            translated_style = translate_to_english(custom_style)
-            selected_styles_en = [translated_style]
-            selected_styles_kr = custom_style
-            st.session_state.travel_style = selected_styles_en
-            st.session_state.current_step = 4
-            # 선택된 스타일 메시지 출력
-            user_message(f"{selected_styles_kr}")
-            chatbot_message(f"{selected_styles_kr} 타입의 여행을 선택했습니다.")
-        elif selected_styles:
-            # 사용자 정의 스타일이 없을 때만 pills 선택 반영
-            selected_styles_en = [travel_styles[style] for style in selected_styles]
-            selected_styles_kr = ", ".join(selected_styles)
-            st.session_state.travel_style = selected_styles_en
-            st.session_state.current_step = 4
-            # 선택된 스타일 메시지 출력
-            user_message(f"{selected_styles_kr}")
-            chatbot_message(f"{selected_styles_kr} 타입의 여행을 선택했습니다.")
-
-    # 지연
-    time.sleep(0.5)
-
-    # 여행 일정 스타일 선택 - 나영수정(11/14): pills 스타일 사용
-    if st.session_state.travel_style:
-        chatbot_message(
-            "선호하는 여행 일정 스타일은 무엇인가요? 두 가지 타입 중 선택해주세요 🤗"
-        )
-        itinerary_preferences = {
-            "빼곡한 일정": "Packed itinerary",
-            "널널한 일정": "Relaxed itinerary",
-        }
-
-        # Pills 스타일로 여행 일정 스타일 선택
-        selected_preference_kr = st.pills(
-            label=None,
-            options=list(itinerary_preferences.keys()),
-            selection_mode="single",
-        )
-
-        # 선택된 일정 스타일에 따라 상태 업데이트
-        if selected_preference_kr:
-            selected_preference_en = itinerary_preferences[selected_preference_kr]
-            st.session_state.itinerary_preference = selected_preference_en
-            st.session_state.current_step = 5
-            user_message(f"{selected_preference_kr}")  # 사용자 선택 일정 스타일 메시지
-            chatbot_message(
-                f"{selected_preference_kr} 일정 스타일로 일정을 준비하겠습니다."
+        # Pills 옵션 및 선택 로직
+        if not st.session_state.styles_selected:
+            selected_styles = st.pills(
+                label=None,
+                options=list(travel_styles.keys()) + ["처음으로", "이전으로"],
+                selection_mode="multi",
+                key="style_pills"
             )
 
-    # 지연
-    time.sleep(0.5)
+            # '처음으로' 선택 시 대화 초기화
+            if "처음으로" in selected_styles:
+                reset_conversation()
+            elif "이전으로" in selected_styles:
+                previous_step()
+
+            # 사용자 정의 여행 스타일 입력받기
+            custom_style = st.text_input("다른 스타일을 원하시면 입력해주세요", key="custom_style")
+
+            # '선택 완료' 버튼 클릭 시
+            if st.button("선택 완료", key="confirm_styles"):
+                if custom_style:
+                    # 사용자 정의 스타일이 입력된 경우
+                    translated_style = translate_to_english(custom_style)
+                    st.session_state.selected_styles = [custom_style]
+                    st.session_state.travel_style = [translated_style]
+                    user_message(f"{custom_style}")
+                    chatbot_message(f"{custom_style} 스타일의 여행을 선택했습니다.")
+                elif selected_styles:
+                    # Pills 선택된 항목 반영
+                    selected_styles_en = [travel_styles.get(style, style) for style in selected_styles if style not in ["처음으로", "이전으로"]]
+                    selected_styles_kr = ", ".join(selected_styles)
+                    st.session_state.selected_styles = selected_styles
+                    st.session_state.travel_style = selected_styles_en
+                    user_message(f"{selected_styles_kr}")
+                    chatbot_message(f"{selected_styles_kr} 스타일의 여행을 선택했습니다.")
+                else:
+                    st.error("여행 스타일을 선택하거나 입력해주세요.")
+                st.session_state.styles_selected = True
+        else:
+            # 선택 완료 후 결과 메시지 출력
+            selected_styles = st.session_state.selected_styles
+            selected_styles_en = [travel_styles.get(style, style) for style in selected_styles]
+            selected_styles_kr = ", ".join(selected_styles)
+            st.session_state.travel_style = selected_styles_en
+
+            user_message(f"{selected_styles_kr}")
+            chatbot_message(f"{selected_styles_kr} 스타일의 여행을 선택했습니다.")
+            st.session_state.current_step = 4
+
+    # 여행 일정 스타일 선택
+    if st.session_state.travel_style:
+        chatbot_message("선호하는 여행 일정 스타일은 무엇인가요? 두 가지 타입 중 선택해주세요 🤗")
+        itinerary_preferences = {
+            "빼곡한 일정": "Packed itinerary",
+            "널널한 일정": "Relaxed itinerary"
+        }
+
+        # 상태 초기화
+        if 'itinerary_style_selected' not in st.session_state:
+            st.session_state.itinerary_style_selected = False
+        if 'selected_itinerary_style' not in st.session_state:
+            st.session_state.selected_itinerary_style = None
+
+        # Pills 옵션 및 선택 로직
+        if not st.session_state.itinerary_style_selected:
+            selected_preference_kr = st.pills(
+                label=None,
+                options=list(itinerary_preferences.keys()) + ["처음으로", "이전으로"],
+                selection_mode="single",
+                key="itinerary_style_pills"
+            )
+
+            # '처음으로' 선택 시 대화 초기화
+            if selected_preference_kr == "처음으로":
+                reset_conversation()
+            elif selected_preference_kr == "이전으로":
+                previous_step()
+            elif selected_preference_kr:
+                # 선택 완료 처리
+                st.session_state.itinerary_style_selected = True
+                st.session_state.selected_itinerary_style = selected_preference_kr
+                selected_preference_en = itinerary_preferences[selected_preference_kr]
+                st.session_state.itinerary_preference = selected_preference_en
+                selected_itinerary_style_kr = st.session_state.selected_itinerary_style
+                user_message(f"{selected_itinerary_style_kr}")
+                chatbot_message(f"{selected_itinerary_style_kr}으로 여행 일정을 준비하겠습니다.")
+
+        else:
+            # 선택 완료 후 결과 메시지 출력
+            selected_itinerary_style_kr = st.session_state.selected_itinerary_style
+            user_message(f"{selected_itinerary_style_kr}")
+            chatbot_message(f"{selected_itinerary_style_kr}으로 여행 일정을 준비하겠습니다.")
+            st.session_state.current_step = 5
 
     # 숙소 유형 선택 - pills와 text_input 같이 표시
     if st.session_state.itinerary_preference:
-        chatbot_message(
-            "어떤 숙소를 원하시나요? 아래에서 선택하거나 직접 입력해주세요. 중복선택도 가능합니다 😎"
-        )
+        chatbot_message("어떤 숙소를 원하시나요? 아래에서 선택하거나 직접 입력해주세요. 중복선택도 가능합니다 😎")
 
         accommodations = {
             "공항 근처 숙소": "Accommodation near the airport",
-            "5성급 호텔": "5-star hotel",
+            "4성급 이상 호텔": "4-star or higher hotel",
             "수영장이 있는 숙소": "with a swimming pool",
             "게스트 하우스": "Guest house",
             "민박집": "Bed and Breakfast",
-            "전통가옥": "Traditional house",
+            "전통가옥": "Traditional house"
         }
 
-        # Pills 스타일로 숙소 유형 선택
-        selected_accommodations_kr = st.pills(
-            label="숙소 유형 선택",
-            options=list(accommodations.keys()),
-            selection_mode="multi",
-        )
+        # 상태 초기화
+        if 'accommodations_selected' not in st.session_state:
+            st.session_state.accommodations_selected = False
+        if 'selected_accommodations' not in st.session_state:
+            st.session_state.selected_accommodations = []
 
-        # 기본 선택된 숙소 유형 목록 초기화
-        selected_accommodations_en = []
-        selected_accommodations_kr_str = ""
-
-        # 사용자 정의 숙소 유형 입력받기
-        custom_accommodation = st.text_input(
-            "다른 숙소 유형을 원하시면 입력해주세요", key="custom_accommodation"
-        )
-
-        # 선택된 항목 처리
-        if custom_accommodation:
-            # 사용자 정의 숙소 유형 추가
-            translated_accommodation = translate_to_english(custom_accommodation)
-            selected_accommodations_en = [translated_accommodation]
-            selected_accommodations_kr_str = custom_accommodation
-            st.session_state.accommodation_type = selected_accommodations_en
-            st.session_state.current_step = 6
-
-            # 선택된 숙소 유형 메시지 출력
-            user_message(f"{selected_accommodations_kr_str}")
-            chatbot_message(
-                f"{selected_accommodations_kr_str} 스타일의 숙소로 추천해드리겠습니다."
+        # Pills 옵션 및 선택 로직
+        if not st.session_state.accommodations_selected:
+            selected_accommodations = st.pills(
+                label=None,
+                options=list(accommodations.keys()) + ["처음으로", "이전으로"],
+                selection_mode="multi",
+                key="accommodation_pills"
             )
 
-        elif selected_accommodations_kr:
-            # Pills 선택된 항목 추가
+            # '처음으로' 선택 시 대화 초기화
+            if "처음으로" in selected_accommodations:
+                reset_conversation()
+            elif "이전으로" in selected_accommodations:
+                previous_step()
+
+            # 사용자 정의 숙소 유형 입력받기
+            custom_accommodation = st.text_input("다른 숙소 유형을 원하시면 입력해주세요", key="custom_accommodation")
+
+            # 선택 완료 버튼 클릭 시
+            if st.button("선택 완료", key="confirm_accommodations"):
+                st.session_state.accommodations_selected = True  # 선택 완료 상태로 변경
+                # 기존 선택 옵션과 사용자 입력을 합치기
+                selected_accommodations_combined = [
+                    acc for acc in selected_accommodations if acc not in ["처음으로", "이전으로"]
+                ]
+                if custom_accommodation:
+                    translated_accommodation = translate_to_english(custom_accommodation)
+                    selected_accommodations_combined.append(custom_accommodation)
+                    st.session_state.selected_accommodations.append(translated_accommodation)
+
+                st.session_state.selected_accommodations = selected_accommodations_combined
+        else:
+            # 선택 완료 후 결과 메시지 출력
+            selected_accommodations = st.session_state.selected_accommodations
             selected_accommodations_en = [
-                accommodations[accommodation]
-                for accommodation in selected_accommodations_kr
+                accommodations.get(acc, acc) for acc in selected_accommodations
             ]
-            selected_accommodations_kr_str = ", ".join(selected_accommodations_kr)
+            selected_accommodations_kr = ", ".join(selected_accommodations)
             st.session_state.accommodation_type = selected_accommodations_en
+
+            user_message(f"{selected_accommodations_kr}")
+            chatbot_message(f"{selected_accommodations_kr} 스타일의 숙소를 추천해드리겠습니다.")
             st.session_state.current_step = 6
 
-            # 선택된 숙소 유형 메시지 출력
-            user_message(f"{selected_accommodations_kr_str}")
-            chatbot_message(
-                f"{selected_accommodations_kr_str} 스타일의 숙소로 추천해드리겠습니다."
-            )
 
-    # 지연
-    time.sleep(1.5)
 
     # 여행 일정 생성 조건
     if (
@@ -647,47 +716,36 @@ with st.sidebar:
         and st.session_state.itinerary_preference
         and st.session_state.accommodation_type
     ):
-        chatbot_message(
-            "기본 여행 질문이 끝났습니다. 😊 여행 정보 작성이 완료되었나요? 완료되었다면 여행 일정을 생성합니다! 추가적인 요청 사항이 있으시다면 '아니오'를 선택해주세요"
-        )
+        chatbot_message("기본 여행 질문이 끝났습니다. 😊 여행 정보 작성이 완료되었나요? 완료되었다면 여행 일정을 생성합니다! 추가적인 요청 사항이 있으시다면 '아니오'를 선택해주세요")
 
         # '네'와 '아니요' 선택 옵션
         response = st.pills(
             label=" ",
             options=["네", "아니요"],
             selection_mode="single",
-            key="confirm_response",
+            key="confirm_response"
         )
 
         # '네'를 선택한 경우
         if response == "네":
             chatbot_message("여행 일정을 생성합니다!")
-            # st.session_state.show_itinerary = True
+            #st.session_state.show_itinerary = True
             generate_itinerary()
-
-            # 지연
-            time.sleep(1.5)
             follow_up_question()
 
         # '아니요'를 선택한 경우
         elif response == "아니요":
             additional_question = st.text_input(
-                "추가적으로 입력하고 싶은 여행 정보가 있다면 입력해주세요 📝",
+                "추가적으로 입력하고 싶은 여행 정보가 있다면 입력해주세요 📝", 
                 key="additional_question",
-                value="",
+                value=""
             )
             if additional_question.strip():
                 translated_question = translate_to_english(additional_question)
-                chatbot_message(
-                    "추가 요청사항 입력이 끝났습니다. 😊 여행 일정을 생성합니다!"
-                )
-                # st.session_state.show_itinerary = True
+                chatbot_message("추가 요청사항 입력이 끝났습니다. 😊 여행 일정을 생성합니다!")
+                #st.session_state.show_itinerary = True
                 generate_itinerary()
-
-                # 지연
-                time.sleep(1.5)
                 follow_up_question()
-
 
 ########################################## 결과창 ##########################################
 
@@ -751,9 +809,12 @@ with st.container():
             
             # 선택한 날짜와 시간대에 맞는 데이터 필터링
             filtered_df = df[(df['날짜'] == selected_day) & (df['시간대'] == time_period)]
-            
+            #<img src="{image_url}" alt="Accommodation Image" class="accommodation-image"/>
             ## 일정 카드 형식으로 표시
+            ## 일정 카드 형식으로 표시
+            # 여행 일정 카드 출력
             for idx, row in filtered_df.iterrows():
+                image_url = row['이미지'] if row['이미지'] else "https://via.placeholder.com/40"  # 이미지 없을 경우 기본 이미지
                 st.markdown(
                     f"""
                     <div class="travel-card-container">
@@ -761,10 +822,15 @@ with st.container():
                             <div class="circle">{idx + 1}</div>
                         </div>
                         <div class="travel-card">
-                            <h5>{row['장소명']}</h5>
-                            <p class="time">{row.get('운영시간', '운영시간 정보 없음')}</p>
+                            <div class="travel-card-header">
+                                <img src="{image_url}" alt="Place Image" />
+                                <div>
+                                    <h5>{row['장소명']}</h5>
+                                    <p class="time">{row.get('운영시간', '운영시간 정보 없음')}</p>
+                                </div>
+                            </div>
                             <hr>
-                            <p class="description">📌 <strong>장소 소개:</strong> {row['장소 소개']}</p>
+                            <p class="description">📌 {row['장소 소개']}</p>
                         </div>
                     </div>
                     """,
@@ -772,7 +838,7 @@ with st.container():
                 )
 
         # 페이지에 숙소 추천 스타일 추가
-        # accomodation_card_style()은 css 파일에 있음
+        # accommodation_card_style()은 css 파일에 있음
         st.markdown(accommodation_card_style(), unsafe_allow_html=True)
 
         # 숙소 추천 표시
@@ -787,28 +853,45 @@ with st.container():
 
             cols = st.columns(5)  # 5열로 나누기
 
-            for i, row in accommodations.iterrows():  # iterrows()에서 (index, row)로 가져옴
-                with cols[i % 5]:  # 각 열에 하나씩 표시
-                    image_url = row["Image"]  # 행 데이터에서 "Image" 열 접근
-                    if image_url != "없음":  # 이미지 URL이 있을 경우에만 표시
+            for i, row in accommodations.iterrows():
+                with cols[i % 5]:
+                    image_url = row["Image"]
+                    place_id = row["PlaceID"]  # Google Place ID 가져오기
+                    booking_url = f"https://www.google.com/maps/place/?q=place_id:{place_id}"
+
+                    if image_url != "없음":
                         st.markdown(
                             f"""
                             <div class="accommodation-card">
                                 <img src="{image_url}" alt="Accommodation Image" class="accommodation-image"/>
-                                <p>{row['Name']}</p>
-                                <p>⭐ {row['Rating']}</p>
-                                <p>{row['Price']}</p>
+                                <h6>{row['Name']}</h6>
+                                <h6>⭐ {row['Rating']}</h6>
+                                <p>
+                                    <a href="{booking_url}" target="_blank" style="text-decoration: none; color: #007bff; display: flex; align-items: center;">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/25/25284.png" 
+                                            alt="Link Icon" 
+                                            style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;" />
+                                        <span style="font-size: 12px;">예약하기</span>
+                                    </a>
+                                </p>
                             </div>
                             """,
                             unsafe_allow_html=True,
                         )
-                    else:  # 이미지가 없을 경우 기본 카드만 표시
+                    else:
                         st.markdown(
                             f"""
                             <div class="accommodation-card">
-                                <p>{row['Name']}</p>
-                                <p>⭐ {row['Rating']}</p>
-                                <p>{row['Price']}</p>
+                                <h6>{row['Name']}</h6>
+                                <h6>⭐ {row['Rating']}</h6>
+                                <p>
+                                    <a href="{booking_url}" target="_blank" style="text-decoration: none; color: #007bff; display: flex; align-items: center;">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/25/25284.png" 
+                                            alt="Link Icon" 
+                                            style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;" />
+                                        <span style="font-size: 14px;">예약하기</span>
+                                    </a>
+                                </p>
                             </div>
                             """,
                             unsafe_allow_html=True,

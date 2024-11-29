@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_chat import message
 
 # 벡터 DB 및 llm 라이브러리
 import pinecone
@@ -54,7 +53,7 @@ model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L6-v2")
 from pinecone import Pinecone, ServerlessSpec
 
 pinecone = Pinecone(api_key=pinecone_api_key)
-index = pinecone.Index("trip-index")
+index = pinecone.Index("travel-index")
 
 # 3. 검색 함수 정의
 # 선호 숙소 형태 및 동행인 기반
@@ -86,15 +85,14 @@ Create a list of the **top 5** accommodations for your customer's trip based on 
 1. Offer the proper option based on their accommodation preferences and travel companions among hotels, resorts, inns, hostels, B&B, and so on.
 2. Ensure the accommodations are in safe areas of {city}.
 3. Please make the list consist of the \n{recommendations}.
-4. **Only for an approximate nightly price, please retrieve this information from external sources such as Agoda, Booking.com, and so on. The currency unit is Korean WON.**
 </requirements>
 """
 
 output = """
 Ensure the output is valid JSON and strictly adheres to the structure and letter case below:
 [
-    {{"Name": "Paris Perfect", "Price": "1,200,000 ₩", "Location": "25 Pl. Dauphine, 75001 Paris, France"}},
-    {{"Name": "Beau M Hostel", "Price": "200,000 ₩", "Location": "108 Rue Damrémont, 75018 Paris, France"}}
+    {{"Name": "Paris Perfect", "Location": "25 Pl. Dauphine, 75001 Paris, France"}},
+    {{"Name": "Beau M Hostel", "Location": "108 Rue Damrémont, 75018 Paris, France"}}
 ]
 
 """
@@ -194,15 +192,16 @@ def final_recommendations(city, companions, lodging_style):
     
     temps = [
         {
+            "PlaceID": match.metadata['0_placeID'],
             "Name": match.metadata['1_이름'],
             "Rating": match.metadata['3_평점'],
             "Location": match.metadata['2_주소'],
             "Type": match.metadata['8_유형'],
-            "Image": (
-                ast.literal_eval(match.metadata['9_이미지'])[0] 
-                if match.metadata['9_이미지'].startswith("[") and match.metadata['9_이미지'].endswith("]") 
-                else match.metadata['9_이미지'].split(', ')[0]
-            )  # 첫 번째 이미지 URL 처리
+            "Image": match.metadata['9_이미지'].split(', ')[0]
+                #ast.literal_eval(match.metadata['9_이미지'])[0] 
+                #if match.metadata['9_이미지'].startswith("[") and match.metadata['9_이미지'].endswith("]") 
+                #else match.metadata['9_이미지'].split(', ')[0]
+            #)  # 첫 번째 이미지 URL 처리
         }
         for match in search_results.matches
     ]

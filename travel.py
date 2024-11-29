@@ -1,31 +1,20 @@
-import streamlit as st
-from streamlit_chat import message
-
 import pandas as pd
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
-import pinecone
-from pinecone import Pinecone, ServerlessSpec
-from sentence_transformers import SentenceTransformer
-from nltk.tokenize import sent_tokenize
-import numpy as np
+from pinecone import Pinecone
+import ast
 from langchain_core.prompts import (
     ChatPromptTemplate,
-    MessagesPlaceholder,
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.memory import ConversationSummaryBufferMemory
 from langchain.chains import LLMChain
-from langchain.memory import ConversationBufferMemory
 from langchain_core.prompts import ChatPromptTemplate
 import getpass
 import os
 import pandas as pd
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
 output_parser = StrOutputParser()
 
 import pandas as pd
@@ -33,38 +22,22 @@ import re
 import requests
 import openai
 
-# api 로드에 필요
-from dotenv import load_dotenv
-import os
+import streamlit as st
+
+## open api key 설정
 
 # .env 파일 로드
 load_dotenv()
 
-# 1. OpenAI API 키 설정 및 임베딩 모델 초기화   
+openai.api_key = os.getenv("OPENAI_API_KEY")
+pinecone_api_key= os.getenv("PINECONE_API_KEY")
 
-# 배포용 api 설정
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
 
-if not openai_api_key or not pinecone_api_key:
-    raise ValueError("API 키가 Streamlit Secrets에 설정되지 않았습니다.")
-
-# API 키 가져오기
-#openai_api_key = os.getenv("OPENAI_API_KEY")
-#pinecone_api_key = os.getenv("PINECONE_API_KEY")
-# OpenAI 라이브러리에 API 키 설정
-import openai
-openai.api_key = openai_api_key
-
-model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L6-v2") # embedding 모델 로드
-
-# 2. 파인콘 초기화
 pinecone = Pinecone(api_key=pinecone_api_key)
-index = pinecone.Index("trip-index")
+index = pinecone.Index("travel-index")
 
 # 3. 검색 함수 정의
-
-# 검색 함수 정의
 
 # 여행 스타일 및 동행인 기반 관광지 검색
 def search_places_style(city, companions, travel_style):
@@ -99,6 +72,7 @@ def merge_and_deduplicate_places_to_df(results_best, results_style, results_rest
     places_data = []
     for item in combined_results:
         places_data.append({
+            "place_id" :item['metadata'].get('0_placeID', 'N/A'),
             "name": item['metadata'].get('1_이름', 'N/A'),
             "address": item['metadata'].get('2_주소', 'N/A'),
             "rating": item['metadata'].get('3_평점', 0),
@@ -116,13 +90,8 @@ def merge_and_deduplicate_places_to_df(results_best, results_style, results_rest
     # 중복 제거 (장소 이름과 주소를 기준으로)
     df = df.drop_duplicates(subset=["name", "address"]).reset_index(drop=True)
 
-    # 이미지 URL 처리: 대괄호 제거 및 첫 번째 URL 추출
-    def process_image_url(image_data):
-        if isinstance(image_data, str) and image_data.startswith("[") and image_data.endswith("]"):
-            return image_data.strip("[]").replace("'", "").split(",")[0].strip()
-        return image_data  # 예외 처리
-
-    df['image_url'] = df['image_url'].apply(process_image_url)
+    # 이미지 URL 처리: 첫 번째 URL 추출
+    df['image_url'] = df['image_url'].apply(lambda x: x.split(", ")[0])
 
     return df
 
@@ -227,12 +196,6 @@ llm = ChatOpenAI(
 #memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 
-
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-
-
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-
 # 여행 일정 생성 함수
 def generate_itinerary_recommendations(city, trip_duration, companions, travel_style, itinerary_style, user_request, places_list):
 
@@ -297,13 +260,14 @@ def process_and_merge_itinerary(itinerary, final_results):
 
     # Step 3: places_df에서 필요한 열 선택 및 컬럼 이름 통일
     final_results = final_results.rename(columns={
+        'place_id': 'PlaceID',
         'name': '장소명',  # 이름 열 통일
         'address': '주소',     # 주소 열 이름 통일
         'image_url': '이미지'  # 이미지 열 이름 통일
     })
 
     # Step 5: inner join 수행 (장소명을 기준으로)
-    merged_df = pd.merge(itinerary_df, final_results[['장소명', '주소', '이미지']], on='장소명', how='inner')
+    merged_df = pd.merge(itinerary_df, final_results[['PlaceID','장소명', '주소', '이미지']], on='장소명', how='inner')
 
     # Step 6: 최종 DataFrame 반환
     return merged_df
