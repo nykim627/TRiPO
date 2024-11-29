@@ -102,7 +102,7 @@ Ensure the output is valid JSON and strictly adheres to the structure and letter
 llm = ChatOpenAI(
     temperature=0.1,
     model_name="gpt-4o",  # 4-turbo보다 빠르고, 한국어도 더 잘함
-    openai_api_key=openai_api_key,
+    #openai_api_key=openai_api_key
 )
 
 
