@@ -86,23 +86,35 @@ Create a list of the **top 5** accommodations for your customer's trip based on 
 2. Ensure the accommodations are in safe areas of {city}.
 3. Please make the list consist of the \n{recommendations}.
 </requirements>
+
+<Example Output Structure>
+
+```json
+{{
+    "숙소 추천": [
+        {{"Name": "Paris Perfect", "Location": "25 Pl. Dauphine, 75001 Paris, France"}},
+        {{"Name": "Beau M Hostel", "Location": "108 Rue Damrémont, 75018 Paris, France"}}
+    ]
+}}
+</Example Output Structure>
 """
 
-output = """
-Ensure the output is valid JSON and strictly adheres to the structure and letter case below:
-[
-    {{"Name": "Paris Perfect", "Location": "25 Pl. Dauphine, 75001 Paris, France"}},
-    {{"Name": "Beau M Hostel", "Location": "108 Rue Damrémont, 75018 Paris, France"}}
-]
-
 """
+
+#output = """
+#Ensure the output is valid JSON and strictly adheres to the structure and letter case below:
+#[
+#    {{"Name": "Paris Perfect", "Location": "25 Pl. Dauphine, 75001 Paris, France"}},
+#    {{"Name": "Beau M Hostel", "Location": "108 Rue Damrémont, 75018 Paris, France"}}
+#]
+#"""
 
 
 # 5. 프롬프트와 LLMChain 설정
 llm = ChatOpenAI(
     temperature=0.1,
     model_name="gpt-4o",  # 4-turbo보다 빠르고, 한국어도 더 잘함
-    openai_api_key=openai_api_key,
+    #openai_api_key=openai_api_key
 )
 
 
@@ -121,43 +133,54 @@ def generate_accommodation_recommendations(city, companions, lodging_style, reco
             companions=companions,
             lodging_style=lodging_style,
             recommendations=recommendations
-        ) + "\n" + output
-        print(f"Formatted Prompt:\n{formatted_prompt}\n")
+        #) + "\n" + output
+        )
     except KeyError as e:
         print(f"Error in formatting prompt: {e}")
         return None
-    #a2 = time.time()
-    #print(f"Prompt Time: {a2 - a1:.2f} seconds")
 
     # LangChain 프롬프트 구성
-    #b2 = time.time()
-    try:
-        prompt = ChatPromptTemplate(
-            messages=[
-                SystemMessagePromptTemplate.from_template(filled_persona),
-                HumanMessagePromptTemplate.from_template(formatted_prompt)
-            ]
-        )
-    except Exception as e:
-        print(f"Error in creating ChatPromptTemplate: {e}")
-        return None
-    #b3 = time.time()
-    #print(f"Prompt Template Time: {b3 - b2:.2f} seconds")
+    #try:
+    #    prompt = ChatPromptTemplate(
+    #        messages=[
+    #            SystemMessagePromptTemplate.from_template(filled_persona),
+    #            HumanMessagePromptTemplate.from_template(formatted_prompt)
+    #        ]
+    #    )
+    #except Exception as e:
+    #    print(f"Error in creating ChatPromptTemplate: {e}")
+    #    return None
 
     # LLMChain 설정 및 실행
     #c1 = time.time()
-    try:
-        conversation = LLMChain(
-            llm=llm,
-            prompt=prompt,
-            verbose=True
-        )
-        result = conversation.run({})
-    except Exception as e:
-        print(f"Error during LLMChain execution: {e}")
-        return None
-    #c2 = time.time()
-    #print(f"Conversation Time: {c2 - c1:.2f} seconds")
+    #try:
+    #    conversation = LLMChain(
+    #        llm=llm,
+    #        prompt=prompt,
+    #        verbose=True
+    #    )
+    #    result = conversation.run({})
+    #except Exception as e:
+    #    print(f"Error during LLMChain execution: {e}")
+    #    return None
+    #return result
+
+    # 프롬프트 구성
+    prompt = ChatPromptTemplate(
+        template=formatted_prompt,
+        messages=[
+            SystemMessagePromptTemplate.from_template(filled_persona),  # 페르소나 주입
+            HumanMessagePromptTemplate.from_template("{input}")  # 질문 입력
+        ]
+    )
+
+    # RunnableSequence로 구성
+    conversation = prompt | llm
+
+    # 여러 입력 변수를 하나의 딕셔너리로 전달 (invoke로 변경)
+    result = conversation.invoke({
+        "input": formatted_prompt
+    })
     return result
 
 
@@ -221,17 +244,28 @@ def final_recommendations(city, companions, lodging_style):
         recommendations=recommendations
     )
 
+    accommodation_recommendations = accommodation_recommendations.content
+
     # 불필요한 설명 제거 및 JSON 변환
-    start_index = accommodation_recommendations.find("[")
-    end_index = accommodation_recommendations.rfind("]")
-    json_text = accommodation_recommendations[start_index:end_index + 1].strip()
+    #start_index = accommodation_recommendations.find("[")
+    #end_index = accommodation_recommendations.rfind("]")
+    #json_text = accommodation_recommendations[start_index:end_index + 1].strip()
 
     # JSON 유효성 확인
-    json_text = re.sub(r"\n\s*", "", json_text)
-    accommodations = json.loads(json_text)
+    #json_text = re.sub(r"\n\s*", "", json_text)
+    #accommodations = json.loads(json_text)
 
     # 데이터프레임으로 변환
-    df_json = pd.DataFrame(accommodations)
+    #df_json = pd.DataFrame(accommodations)
+
+    # Step 1: itinerary에서 JSON 부분만 추출
+    start_index = accommodation_recommendations.find("{")  # JSON 시작 위치
+    end_index = accommodation_recommendations.rfind("}")   # JSON 끝 위치
+    json_text = accommodation_recommendations[start_index:end_index+1]
+    data = json.loads(json_text)
+
+    # Step 2: "여행 일정" 키 아래의 리스트를 DataFrame으로 변환
+    df_json = pd.DataFrame(data["숙소 추천"])
 
     # 이름과 Location을 기준으로 병합
     df_result = df_json.merge(
