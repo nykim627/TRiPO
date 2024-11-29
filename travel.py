@@ -29,8 +29,19 @@ import streamlit as st
 # .env 파일 로드
 load_dotenv()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-pinecone_api_key= os.getenv("PINECONE_API_KEY")
+# 배포용 api 설정
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+
+# API 키 가져오기
+openai_api_key = os.getenv("OPENAI_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
+
+# if not openai_api_key or not pinecone_api_key:
+#    raise ValueError("API 키가 Streamlit Secrets에 설정되지 않았습니다.")
+
+openai.api_key = openai_api_key
+# pinecone_api_key= os.getenv("PINECONE_API_KEY")
 
 model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
 
@@ -190,6 +201,7 @@ from langchain.memory import ConversationBufferMemory
 llm = ChatOpenAI(
     temperature=0.1,  # 창의성 (0.0 ~ 2.0)
     model_name="gpt-4o",  # 모델명
+    # openai_api_key=openai_api_key,
 )
 
 # Memory for storing conversation history
